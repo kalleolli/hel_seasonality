@@ -129,7 +129,7 @@ ggm2 <- ggplot(data = hel_cropped_sf) + # Helsinki archipelago map
   theme(panel.grid.major = element_line(color = gray(.5), linetype = 'dashed', size = 0.2), panel.background = element_rect(fill = 'aliceblue'), panel.border = element_rect(colour = "black", fill=NA, size=1))
 
 
-  } # Helsinki outer archipelago map, provides ggm2
+  } # Helsinki archipelago map, provides ggm2
   
 if(T){ # finalize and save Fig1
     
@@ -206,9 +206,7 @@ if(T){ # 3D model of season and time interaction
     
     peaks.df <- data.frame(peak = peaks, time = 1966.6:2019.6, ww = 0, bloom_start = bloom_start, bloom_end = bloom_end, bloom_dur = bloom_end-bloom_start)
     
-    # bloom_start.df <- data.frame(jul = bloom_start, time = 1966.6:2019.6, ww = 0)
-    # bloom_end.df <- data.frame(jul = bloom_end, time = 1966.6:2019.6, ww = 0)
-    
+# spring bloom peak seasonality change
     peak_lm <- lm(peak ~ time, data = peaks.df)# significant negative slope, bloom peaks get earlier 0.27 days per year
     
     # peaks.df %>% mutate(obs_juldate=as.Date(peak, start = '01/01/2020')) %>% ggplot(aes(x = time, y = obs_juldate)) + geom_point() + geom_smooth(method = 'lm')
@@ -220,12 +218,6 @@ if(T){ # 3D model of season and time interaction
   # marginal distribution plots for ti(jul) and time ti(time) with separate main effects and interaction ti(jul, time)
   xy_gam <- gamm(wwl ~ te(jul, time, bs = c("cc","tp"), k = c(12, 10)), data = meta, correlation = corCAR1(form = ~ 1|year), control = ctrl, method = 'REML')$gam
 
-  chl_gam <- gamm(chla ~ te(jul, time, bs = c("cc","tp"), k = c(12, 10)), data = meta, correlation = corCAR1(form = ~ 1|year), control = ctrl, method = 'REML')$gam
-  chl.gam <- gamm(wwl ~ ti(jul, bs = 'cc', k = 12) + ti(time, bs = 'tp', k = 10) + ti(jul, time, bs = c("cc","tp")), data = filter(meta, year > 1970, jul %in% 100:300), correlation = corCAR1(form = ~ 1|year), control = ctrl, method = 'REML')$gam
-  
-  gratia::smooth_estimates(chl.gam, newdata = newd, select = 'ti(jul,time)', dist = 0.1) %>% draw()
-  sm_chl <- smooth_estimates(chl.gam, select = c('te(jul, time)'))
-  
   margin_gam <- gamm(wwl ~ ti(jul, bs = 'cc', k = 12) + ti(time, bs = 'tp', k = 10) + ti(jul, time, bs = c("cc","tp")), data = meta, correlation = corCAR1(form = ~ 1|year), control = ctrl, method = 'REML')$gam
   
   # weekly grid for all julian days and years
@@ -233,7 +225,6 @@ if(T){ # 3D model of season and time interaction
   
   # use gratia::smooth_estimates to get the smooth estimates for the full tensor product (ww_xy) and marginal distributions (ww_x, ww_y)
   ww_xy <- gratia::smooth_estimates(xy_gam, newdata = newd, select = 'te(jul,time)', dist = 0.1) %>% mutate(ww = .estimate + coef(xy_gam)[1])#
-  sm_chl <- gratia::smooth_estimates(chl.gam, select = 'te(jul, time)')
   
   ww_xmar <- gratia::smooth_estimates(margin_gam, newdata = newd, select = 'ti(jul)') %>% mutate(ww = .estimate + coef(margin_gam)[1])
   ww_ymar <- gratia::smooth_estimates(margin_gam, newdata = newd, select = 'ti(time)') %>% mutate(ww = .estimate + coef(margin_gam)[1])
