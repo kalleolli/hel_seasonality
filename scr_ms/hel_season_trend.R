@@ -45,7 +45,8 @@ if(T){ # make community matrix datcm and meta table
 #  rownames(datcm) <- tmp[[1]] # add sampleID as rownames
 #  datcm[is.na(datcm)] <- 0 # change all NA's to zeros
   
-  datcm <- dplyr::summarise(dat, ww = sum(ww, na.rm = T), .by = c('sampleID', 'valid_name')) %>% pivot_wider(names_from = valid_name, values_from = ww) %>% tibble::column_to_rownames('sampleID') %>% data.matrix() # alternative way to make datcm, same result
+  # build samples x species community matrix
+  datcm <- dplyr::summarise(dat, ww = sum(ww, na.rm = T), .by = c('sampleID', 'valid_name')) %>% pivot_wider(names_from = valid_name, values_from = ww) %>% tibble::column_to_rownames('sampleID') %>% data.matrix() 
   datcm[is.na(datcm)] <- 0 # change all NA's to zeros
   
   
@@ -55,18 +56,9 @@ if(T){ # make community matrix datcm and meta table
                  year = as.numeric(format(obstime, '%Y')), # extract sampling year
                  mon = as.numeric(format(obstime, '%m')), # extract sampling month
                  jul = as.numeric(format(obstime, '%j')), # extract day of the year
-                 week = as.numeric(format(obstime, '%W')), # extract sampling month
                  ww = rowSums(datcm[as.character(met$sampleID), ]),  # ww biomass
                  wwl = log(ww), # log biomass
-                 fstn = factor(stn), # station as a factor
                  time = lubridate::decimal_date(obstime), # continuous time in year units
-                 N0 = rowSums(datcm[as.character(met$sampleID), ] > 0),  # Species richness
-                 H = vegan::diversity(datcm[as.character(met$sampleID), ]), # Shannon entropy (base e)
-                 N1 = exp(H), # Shannon diversity (base e)
-                 N2 = vegan::diversity(datcm[as.character(met$sampleID), ], "inv"), # Simpson diversity
-                 rny = vegan::renyi(datcm[as.character(met$sampleID), ], scales = 0.1, hill = F),
-                 J = H / log(N0), # Pielou evenness
-                 E10 = N1 / N0   # Shannon evenness (Hill's ratio)
   )
   
   datcm <- datcm[as.character(meta$sampleID), ] # re-order datcm to match meta
@@ -91,7 +83,7 @@ if(T){
   
   
   if(file.exists('dat_ms/hel_season_maps.rda')){
-    load('dat_ms/hel_season_maps.rda') # loads BS, ggm1, hel_cropped_sf, ggm2
+    load('dat_ms/hel_season_maps.rda') # loads BS, hel_cropped_sf, hel_box, bs_box
   } # loads BS, hel_cropped_sf
   else {
     # you need GSHHS_h_L1.shp to run this
@@ -107,10 +99,12 @@ if(T){
     bs_box <- st_bbox(c(xmin = 10, ymin = 53 , xmax = 31, ymax = 67), crs = st_crs(shp_i))
     
     
-    BS <- st_crop(shp_h, bs_box) # Baltic Sea insert coastline for ggm1
+    BS <- st_crop(shp_i, bs_box) # Baltic Sea insert coastline for ggm1
     hel_cropped_sf <- st_crop(shp_f, hel_box) # Helsinki outer archipelago shapefile for ggm1
     
-    save(BS, hel_cropped_sf, file = 'dat_ms/hel_season_maps.rda') # save maps for future use
+    save(BS, hel_cropped_sf, hel_box, bs_box,  file = 'dat_ms/hel_season_maps.rda') # save maps for future use
+    
+    rm(shp_f, shp_i) # garbage collection
     
   } # provides BS, hel_cropped_sf
   
@@ -134,7 +128,6 @@ ggm2 <- ggplot(data = hel_cropped_sf) + # Helsinki archipelago map
   annotation_north_arrow(location = "tl", which_north = "true", pad_x = unit(0.5, "in"), pad_y = unit(0.3, "in"), style = north_arrow_fancy_orienteering) +
   theme(panel.grid.major = element_line(color = gray(.5), linetype = 'dashed', size = 0.2), panel.background = element_rect(fill = 'aliceblue'), panel.border = element_rect(colour = "black", fill=NA, size=1))
 
-rm(shp_f, shp_i) # garbage collection
 
   } # Helsinki outer archipelago map, provides ggm2
   
